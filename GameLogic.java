@@ -30,108 +30,99 @@ public class GameLogic implements PlayableLogic {
 
     @Override
     public boolean move(Position a, Position b) {
-        boolean available = false;
-        if(!((ConcretePlayer)getPieceAtPosition(a).getOwner()).turn()) return false;
-        if(a.getX()==b.getX() && a.getY()==b.getY()) return false;
-
-        if(this.board[a.getX()][a.getY()]!=null){
-            if(this.board[a.getX()][a.getY()] instanceof Pawn) {
-                if(posAtCorner(b)) return false;
-                //in case of the same x value
-                if (a.getX() == b.getX()) {
-                    if(b.getY()>a.getY()) {
-                        for (int i = 1; i <= Math.abs(b.getY() - a.getY()); i++) {
-                            //check if any piece is in the way
-                            if(this.board[a.getX()][a.getY()+i]!=null) return false;
-                        }
-                        //in case move is available
-                        ((Pawn)this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getY() - a.getY()));
-                        available = true;
-                    }
-                    else{
-                        for (int i = 1; i <= Math.abs(b.getY() - a.getY()); i++) {
-                            //check if any piece is in the way
-                            if(this.board[a.getX()][a.getY()-i]!=null) return false;
-                        }
-                        //in case move is available
-                        ((Pawn)this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getY() - a.getY()));
-                        available = true;
-                    }
-                }
-                //in case of the same y value
-                else if(a.getY()==b.getY()){
-                    //dest point is on the right
-                    if(b.getX()>a.getX()) {
-                        for (int i = 1; i <= Math.abs(b.getX() - a.getX()); i++) {
-                            //check if any piece is in the way
-                            if (this.board[a.getX() + i][a.getY()] != null) return false;
-                        }
-                        //in case move is available
-                        ((Pawn)this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getX() - a.getX()));
-                        available = true;
-                    }
-                    //dest point is on the left
-                    else{
-                        for (int i = 1; i <= Math.abs(b.getX() - a.getX()); i++) {
-                            //check if any piece is in the way
-                            if (this.board[a.getX() - i][a.getY()] != null) return false;
-                        }
-                        //in case move is available
-                        ((Pawn)this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getX() - a.getX()));
-                        available = true;
-                    }
-                }
-            }
-            //piece is king
-            else{
-                if(a.getX() == b.getX() || a.getY()==b.getY()) {
-                    if (this.board[b.getX()][b.getY()] == null) {
-                        //if dest point is 1 square away from start point
-                        if (Math.abs(a.getX() - b.getX()) == 1 || Math.abs(a.getY() - b.getY()) == 1) {
-                            //if king at the board's corner
-                            if (posAtCorner(b)) {
-                                gameFinished = true;
-                                ((ConcretePlayer) this.player1).won();
-                                return true;
-                            }
-                            else {
-                                this.board[b.getX()][b.getY()] = this.board[a.getX()][a.getY()];
-                                this.board[a.getX()][a.getY()] = null;
-                                this.boardStack.push(copyBoard(this.board));
-                                ((King) this.board[b.getX()][b.getY()]).setPos(b);
-                                ((King) this.board[b.getX()][b.getY()]).setPosStack(b);
-                                addPieceToMapIfNeeded(b);
-                                switchTurns();
-                                this.kingPos = b;
-                                return true;
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
-        if (available){
-            String pawnName = ((Pawn) this.board[a.getX()][a.getY()]).getName();
+        if (moveIsValid(a,b)){
+            String pieceName = ((ConcretePiece) this.board[a.getX()][a.getY()]).getName();
             this.board[b.getX()][b.getY()] = this.board[a.getX()][a.getY()];
             this.board[a.getX()][a.getY()] = null;
-            ((Pawn)this.board[b.getX()][b.getY()]).setPos(b);
-            ((Pawn)this.board[b.getX()][b.getY()]).setPosStack(b);
-            checkIfAte((Pawn) this.board[b.getX()][b.getY()]);
+            ((ConcretePiece)this.board[b.getX()][b.getY()]).setPos(b);
+            ((ConcretePiece)this.board[b.getX()][b.getY()]).setPosStack(b);
+
+            if(this.board[b.getX()][b.getY()] instanceof Pawn){
+                checkIfAte((Pawn) this.board[b.getX()][b.getY()]);
+            }
+            else{
+                this.kingPos = b;
+                if(posAtCorner(b)){
+                    ((ConcretePlayer)this.player1).won();
+                    gameFinished = true;
+                    return true;
+                }
+
+            }
             this.boardStack.push(copyBoard(this.board));
             if(p1Lost()) {
                 ((ConcretePlayer) this.player2).won();
                 gameFinished = true;
             }
             addPieceToMapIfNeeded(b);
-            if(!this.piecesThatMoved.contains(pawnName))
-                this.piecesThatMoved.add(pawnName);
+            if(!this.piecesThatMoved.contains(pieceName))
+                this.piecesThatMoved.add(pieceName);
             switchTurns();
 
 
             return true;
         }
         return false;
+    }
+
+    private boolean moveIsValid(Position a,Position b){
+        boolean available = false;
+        if(!((ConcretePlayer)getPieceAtPosition(a).getOwner()).turn()) return false;
+        if(a.getX()==b.getX() && a.getY()==b.getY()) return false;
+
+
+        if(this.board[a.getX()][a.getY()]!=null) {
+            if (this.board[a.getX()][a.getY()] instanceof Pawn && posAtCorner(b))
+                 return false;
+
+            else {
+                //in case of the same x value
+                    if (a.getX() == b.getX()) {
+                        if (b.getY() > a.getY()) {
+                            for (int i = 1; i <= Math.abs(b.getY() - a.getY()); i++) {
+                                //check if any piece is in the way
+                                if (this.board[a.getX()][a.getY() + i] != null) return false;
+                            }
+                            //in case move is available
+                            ((ConcretePiece) this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getY() - a.getY()));
+                            available = true;
+                        } else {
+                            for (int i = 1; i <= Math.abs(b.getY() - a.getY()); i++) {
+                                //check if any piece is in the way
+                                if (this.board[a.getX()][a.getY() - i] != null) return false;
+                            }
+                            //in case move is available
+                            ((ConcretePiece) this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getY() - a.getY()));
+                            available = true;
+                        }
+                    }
+                    //in case of the same y value
+                    else if (a.getY() == b.getY()) {
+                        //dest point is on the right
+                        if (b.getX() > a.getX()) {
+                            for (int i = 1; i <= Math.abs(b.getX() - a.getX()); i++) {
+                                //check if any piece is in the way
+                                if (this.board[a.getX() + i][a.getY()] != null) return false;
+                            }
+                            //in case move is available
+                            ((ConcretePiece) this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getX() - a.getX()));
+                            available = true;
+                        }
+                        //dest point is on the left
+                        else {
+                            for (int i = 1; i <= Math.abs(b.getX() - a.getX()); i++) {
+                                //check if any piece is in the way
+                                if (this.board[a.getX() - i][a.getY()] != null) return false;
+                            }
+                            //in case move is available
+                            ((ConcretePiece) this.board[a.getX()][a.getY()]).addSteps(Math.abs(b.getX() - a.getX()));
+                            available = true;
+                        }
+                    }
+                }
+
+        }
+        return available;
     }
 
     @Override
