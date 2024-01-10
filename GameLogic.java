@@ -1,6 +1,5 @@
 package matala1;
 
-import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Stack;
@@ -31,7 +30,6 @@ public class GameLogic implements PlayableLogic {
 
     @Override
     public boolean move(Position a, Position b) {
-
         boolean available = false;
         if(!((ConcretePlayer)getPieceAtPosition(a).getOwner()).turn()) return false;
         if(a.getX()==b.getX() && a.getY()==b.getY()) return false;
@@ -121,8 +119,10 @@ public class GameLogic implements PlayableLogic {
             ((Pawn)this.board[b.getX()][b.getY()]).setPosStack(b);
             checkIfAte((Pawn) this.board[b.getX()][b.getY()]);
             this.boardStack.push(copyBoard(this.board));
-            if(p1Lost())
+            if(p1Lost()) {
+                ((ConcretePlayer) this.player2).won();
                 gameFinished = true;
+            }
             addPieceToMapIfNeeded(b);
             if(!this.piecesThatMoved.contains(pawnName))
                 this.piecesThatMoved.add(pawnName);
@@ -188,17 +188,17 @@ public class GameLogic implements PlayableLogic {
         }
     }
 
-//    public void displayBoard(Piece [][] b){
-//        for(int i=0;i<11;i++){
-//            System.out.println("[");
-//            for(int j=0;j<11;j++){
-//                if(b[i][j]==null) System.out.print("null,");
-//                else System.out.print(((ConcretePiece)b[i][j]).getName()+",");
-//            }
-//            System.out.println("]\n");
-//        }
-//        System.out.println("*************************************************************");
-//    }
+    public void displayBoard(Piece [][] b){
+        for(int i=0;i<11;i++){
+            System.out.println("[");
+            for(int j=0;j<11;j++){
+                if(b[i][j]==null) System.out.print("null,");
+                else System.out.print(((ConcretePiece)b[i][j]).getName()+",");
+            }
+            System.out.println("]\n");
+        }
+        System.out.println("*************************************************************");
+    }
 
     @Override
     public int getBoardSize() {
@@ -209,26 +209,36 @@ public class GameLogic implements PlayableLogic {
         int kingX = this.kingPos.getX();
         int kingY = this.kingPos.getY();
         if(kingX<=9 && kingX>=1 && kingY<=9 && kingY>=1){
-            if(this.board[kingX+1][kingY].getOwner().equals(player2) && this.board[kingX-1][kingY].getOwner().equals(player2) && this.board[kingX][kingY+1].getOwner().equals(player2) && this.board[kingX][kingY-1].getOwner().equals(player2)){
-                return true;
+            if(this.board[kingX + 1][kingY]!=null && this.board[kingX - 1][kingY]!=null && this.board[kingX][kingY+1]!=null && this.board[kingX][kingY-1]!=null) {
+                    if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
+                        return true;
+                }
             }
-        }
+
         else{
-            if(kingX==0){
-                if(this.board[kingX+1][kingY].getOwner().equals(player2) && this.board[kingX][kingY+1].getOwner().equals(player2) && this.board[kingX][kingY-1].getOwner().equals(player2))
-                    return true;
+            if(kingX==0) {
+                if (this.board[kingX + 1][kingY] != null && this.board[kingX][kingY + 1] != null && this.board[kingX][kingY - 1] != null) {
+                    if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
+                        return true;
+                }
             }
             if(kingX==10){
-                if(this.board[kingX-1][kingY].getOwner().equals(player2) && this.board[kingX][kingY+1].getOwner().equals(player2) && this.board[kingX][kingY-1].getOwner().equals(player2))
-                    return true;
+                if(this.board[kingX-1][kingY]!=null && this.board[kingX][kingY+1]!=null && this.board[kingX][kingY-1]!=null) {
+                    if (this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
+                        return true;
+                }
             }
             if(kingY==0){
-                if(this.board[kingX+1][kingY].getOwner().equals(player2) && this.board[kingX-1][kingY].getOwner().equals(player2) && this.board[kingX][kingY+1].getOwner().equals(player2))
-                    return true;
+                if(this.board[kingX+1][kingY]!=null && this.board[kingX-1][kingY]!=null && this.board[kingX][kingY+1]!=null) {
+                    if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2))
+                        return true;
+                }
             }
             if(kingY==10){
-                if(this.board[kingX+1][kingY].getOwner().equals(player2) && this.board[kingX-1][kingY].getOwner().equals(player2) && this.board[kingX][kingY-1].getOwner().equals(player2))
-                    return true;
+                if(this.board[kingX+1][kingY]!=null && this.board[kingX-1][kingY]!=null && this.board[kingX][kingY-1]!=null) {
+                    if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
+                        return true;
+                }
             }
         }
         return false;
@@ -375,7 +385,7 @@ public class GameLogic implements PlayableLogic {
         String [][] arr = { {"0","0","0","A1","A2","A3","A4","A5","0","0","0"},
                             {"0","0","0","0","0","A6","0","0","0","0","0"},
                             {"0","0","0","0","0","0","0","0","0","0","0"},
-                            {"A7","0","0","0","0","D1","0","0","0","0","S8"},
+                            {"A7","0","0","0","0","D1","0","0","0","0","A8"},
                             {"A9","0","0","0","D2","D3","D4","0","0","0","A10"},
                             {"A11","A12","0","D5","D6","K7","D8","D9","0","A13","A14"},
                             {"A15","0","0","0","D10","D11","D12","0","0","0","A16"},
@@ -392,6 +402,7 @@ public class GameLogic implements PlayableLogic {
                 }
                 else if (arr[i][j].charAt(0)=='K') {
                     Position p = new Position(i,j);
+                    this.kingPos = p;
                     newBoard[i][j] = new King();
                     ((King)newBoard[i][j]).setPos(p);
                     ((King)newBoard[i][j]).setName(arr[i][j]);
@@ -410,6 +421,8 @@ public class GameLogic implements PlayableLogic {
                 }
             }
         }
+
+
         this.boardStack.push(copyBoard(newBoard));
         return newBoard;
 
