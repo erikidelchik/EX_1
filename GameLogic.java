@@ -11,8 +11,8 @@ public class GameLogic implements PlayableLogic {
     private Player player1;
     private Player player2;
     private boolean gameFinished = false;
-    private LinkedList<String> piecesThatMoved;
-    private LinkedList<String> piecesThatKilled;
+    private LinkedList<Piece> piecesThatMoved;
+    private LinkedList<Piece> piecesThatKilled;
     private HashMap<Position, LinkedList<String>> differentPiecesOnBlock;
     private Position kingPos;
 
@@ -30,21 +30,27 @@ public class GameLogic implements PlayableLogic {
 
     @Override
     public boolean move(Position a, Position b) {
+        //moveIsValid also adding steps
         if (moveIsValid(a,b)){
-            String pieceName = ((ConcretePiece) this.board[a.getX()][a.getY()]).getName();
+
             this.board[b.getX()][b.getY()] = this.board[a.getX()][a.getY()];
             this.board[a.getX()][a.getY()] = null;
-            ((ConcretePiece)this.board[b.getX()][b.getY()]).setPos(b);
-            ((ConcretePiece)this.board[b.getX()][b.getY()]).setPosStack(b);
+            Piece piece = this.board[b.getX()][b.getY()];
+
+            ((ConcretePiece)piece).setPos(b);
+            ((ConcretePiece)piece).setPosQueue(new Position(b.getX(),b.getY()));
 
             if(this.board[b.getX()][b.getY()] instanceof Pawn){
+                checkIfAteNearWall((Pawn) this.board[b.getX()][b.getY()]);
                 checkIfAte((Pawn) this.board[b.getX()][b.getY()]);
             }
             else{
                 this.kingPos = b;
                 if(posAtCorner(b)){
+//
                     ((ConcretePlayer)this.player1).won();
                     gameFinished = true;
+                    printStats();
                     return true;
                 }
 
@@ -55,9 +61,10 @@ public class GameLogic implements PlayableLogic {
                 gameFinished = true;
             }
             addPieceToMapIfNeeded(b);
-            if(!this.piecesThatMoved.contains(pieceName))
-                this.piecesThatMoved.add(pieceName);
+            if(!this.piecesThatMoved.contains(piece))
+                this.piecesThatMoved.add(piece);
             switchTurns();
+
 
 
             return true;
@@ -72,6 +79,7 @@ public class GameLogic implements PlayableLogic {
 
 
         if(this.board[a.getX()][a.getY()]!=null) {
+            //check if pawn trying to go to the corner
             if (this.board[a.getX()][a.getY()] instanceof Pawn && posAtCorner(b))
                  return false;
 
@@ -152,6 +160,7 @@ public class GameLogic implements PlayableLogic {
 
     @Override
     public void reset() {
+
         if(((ConcretePlayer) this.player1).turn()){
             switchTurns();
         }
@@ -159,9 +168,12 @@ public class GameLogic implements PlayableLogic {
             this.boardStack.pop();
         }
         this.differentPiecesOnBlock = new HashMap<>();
+        this.piecesThatMoved = new LinkedList<>();
+        this.piecesThatKilled = new LinkedList<>();
 
         this.board = setNewBoard();
         this.gameFinished = false;
+
 
     }
 
@@ -179,17 +191,17 @@ public class GameLogic implements PlayableLogic {
         }
     }
 
-    public void displayBoard(Piece [][] b){
-        for(int i=0;i<11;i++){
-            System.out.println("[");
-            for(int j=0;j<11;j++){
-                if(b[i][j]==null) System.out.print("null,");
-                else System.out.print(((ConcretePiece)b[i][j]).getName()+",");
-            }
-            System.out.println("]\n");
-        }
-        System.out.println("*************************************************************");
-    }
+//    public void displayBoard(Piece [][] b){
+//        for(int i=0;i<11;i++){
+//            System.out.println("[");
+//            for(int j=0;j<11;j++){
+//                if(b[i][j]==null) System.out.print("null,");
+//                else System.out.print(((ConcretePiece)b[i][j]).getName()+",");
+//            }
+//            System.out.println("]\n");
+//        }
+//        System.out.println("*************************************************************");
+//    }
 
     @Override
     public int getBoardSize() {
@@ -199,41 +211,56 @@ public class GameLogic implements PlayableLogic {
     private boolean p1Lost(){
         int kingX = this.kingPos.getX();
         int kingY = this.kingPos.getY();
+        boolean p1lost = false;
         if(kingX<=9 && kingX>=1 && kingY<=9 && kingY>=1){
             if(this.board[kingX + 1][kingY]!=null && this.board[kingX - 1][kingY]!=null && this.board[kingX][kingY+1]!=null && this.board[kingX][kingY-1]!=null) {
                     if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
-                        return true;
-                }
+                        p1lost = true;
             }
+        }
 
         else{
             if(kingX==0) {
                 if (this.board[kingX + 1][kingY] != null && this.board[kingX][kingY + 1] != null && this.board[kingX][kingY - 1] != null) {
                     if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
-                        return true;
+                        p1lost = true;
                 }
             }
             if(kingX==10){
                 if(this.board[kingX-1][kingY]!=null && this.board[kingX][kingY+1]!=null && this.board[kingX][kingY-1]!=null) {
                     if (this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
-                        return true;
+                        p1lost = true;
                 }
             }
             if(kingY==0){
                 if(this.board[kingX+1][kingY]!=null && this.board[kingX-1][kingY]!=null && this.board[kingX][kingY+1]!=null) {
                     if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY + 1].getOwner().equals(player2))
-                        return true;
+                        p1lost = true;
                 }
             }
             if(kingY==10){
                 if(this.board[kingX+1][kingY]!=null && this.board[kingX-1][kingY]!=null && this.board[kingX][kingY-1]!=null) {
                     if (this.board[kingX + 1][kingY].getOwner().equals(player2) && this.board[kingX - 1][kingY].getOwner().equals(player2) && this.board[kingX][kingY - 1].getOwner().equals(player2))
-                        return true;
+                        p1lost = true;
                 }
             }
         }
+        if(p1lost){
+            printStats();
+            return true;
+        }
         return false;
 
+    }
+
+    private void printStats(){
+        while (!this.piecesThatMoved.isEmpty()){
+            Piece piece = piecesThatMoved.getFirst();
+            ((ConcretePiece)piece).printQueue();
+
+            this.piecesThatMoved.removeFirst();
+            System.out.println();
+        }
     }
 
     private void addPieceToMapIfNeeded(Position b){
@@ -279,11 +306,56 @@ public class GameLogic implements PlayableLogic {
         return false;
     }
 
+    private void checkIfAteNearWall(Pawn pawn){
+        ConcretePiece right,left,up,down;
+        boolean killed = false;
+        int pawnX = pawn.getPos().getX();
+        int pawnY = pawn.getPos().getY();
+
+        if(pawnX==9){
+            if(this.board[pawn.getPos().getX()+1][pawn.getPos().getY()] instanceof Pawn) {
+                right = (Pawn) this.board[pawn.getPos().getX() + 1][pawn.getPos().getY()];
+                if (!right.getOwner().equals(pawn.getOwner()))
+                    killed = isKilled(pawn, right);
+            }
+        }
+
+        if(pawnX==1){
+            if(this.board[pawn.getPos().getX()-1][pawn.getPos().getY()] instanceof Pawn) {
+                left = (Pawn) this.board[pawn.getPos().getX() - 1][pawn.getPos().getY()];
+                if (!left.getOwner().equals(pawn.getOwner()))
+                    killed = isKilled(pawn, left);
+            }
+        }
+
+        if(pawnY == 1) {
+            if (this.board[pawn.getPos().getX()][pawn.getPos().getY()-1] instanceof Pawn) {
+                up = (Pawn) this.board[pawn.getPos().getX()][pawn.getPos().getY() - 1];
+                if(!up.getOwner().equals(pawn.getOwner()))
+                    killed = isKilled(pawn,up);
+            }
+        }
+
+        if(pawnY==9){
+            if (this.board[pawn.getPos().getX()][pawn.getPos().getY()+1] instanceof Pawn) {
+                down = (Pawn) this.board[pawn.getPos().getX()][pawn.getPos().getY() + 1];
+                if(!down.getOwner().equals(pawn.getOwner()))
+                    killed = isKilled(pawn,down);
+            }
+        }
+        if(killed && !piecesThatKilled.contains(pawn)) piecesThatKilled.add(pawn);
+
+    }
+
+    //check if ate by sandwiching a piece
     private void checkIfAte(Pawn pawn){
 
         ConcretePiece right,rightright,left,leftleft,up,upup,down,downdown;
+        boolean killed = false;
 
         //check if can take a pawn on right side
+
+
         if(pawn.getPos().getX()<=8){
             if((!(this.board[pawn.getPos().getX()+1][pawn.getPos().getY()] instanceof King) && !(this.board[pawn.getPos().getX()+2][pawn.getPos().getY()] instanceof King))) {
                 right = (Pawn) this.board[pawn.getPos().getX() + 1][pawn.getPos().getY()];
@@ -293,9 +365,8 @@ public class GameLogic implements PlayableLogic {
                     if (!right.getOwner().equals(pawn.getOwner())) {
                         //check if the right right block is a corner block or a friendly piece block
                         if ((rightright != null && rightright.getOwner().equals(pawn.getOwner())) || pointAtCorner(pawn.getPos().getX() + 2, pawn.getPos().getY())) {
-                            this.board[right.getPos().getX()][right.getPos().getY()] = null;
-                            ((Pawn) this.board[pawn.getPos().getX()][pawn.getPos().getY()]).getKill();
-                            if(!piecesThatKilled.contains(pawn.getName())) piecesThatKilled.add(pawn.getName());
+                            killed = isKilled(pawn, right);
+
 
                         }
                     }
@@ -312,9 +383,8 @@ public class GameLogic implements PlayableLogic {
                     if (!left.getOwner().equals(pawn.getOwner())) {
                         //check if the left left block is a corner block or a friendly piece block
                         if ((leftleft != null && leftleft.getOwner().equals(pawn.getOwner())) || pointAtCorner(pawn.getPos().getX() - 2, pawn.getPos().getY())) {
-                            this.board[left.getPos().getX()][left.getPos().getY()] = null;
-                            ((Pawn) this.board[pawn.getPos().getX()][pawn.getPos().getY()]).getKill();
-                            if(!piecesThatKilled.contains(pawn.getName())) piecesThatKilled.add(pawn.getName());
+                            killed = isKilled(pawn, left);
+
                         }
                     }
                 }
@@ -330,9 +400,8 @@ public class GameLogic implements PlayableLogic {
                     if (!up.getOwner().equals(pawn.getOwner())) {
                         //check if the up up block is a corner block or a friendly piece block
                         if ((upup != null && upup.getOwner().equals(pawn.getOwner())) || pointAtCorner(pawn.getPos().getX(), pawn.getPos().getY()-2)) {
-                            this.board[up.getPos().getX()][up.getPos().getY()] = null;
-                            ((Pawn) this.board[pawn.getPos().getX()][pawn.getPos().getY()]).getKill();
-                            if(!piecesThatKilled.contains(pawn.getName())) piecesThatKilled.add(pawn.getName());
+                            killed = isKilled(pawn, up);
+
                         }
                     }
                 }
@@ -348,16 +417,32 @@ public class GameLogic implements PlayableLogic {
                     if (!down.getOwner().equals(pawn.getOwner())) {
                         //check if the up up block is a corner block or a friendly piece block
                         if ((downdown != null && downdown.getOwner().equals(pawn.getOwner())) || pointAtCorner(pawn.getPos().getX(), pawn.getPos().getY()+2)) {
-                            this.board[down.getPos().getX()][down.getPos().getY()] = null;
-                            ((Pawn) this.board[pawn.getPos().getX()][pawn.getPos().getY()]).getKill();
-                            if(!piecesThatKilled.contains(pawn.getName())) piecesThatKilled.add(pawn.getName());
+                            killed = isKilled(pawn, down);
+
                         }
                     }
                 }
             }
         }
 
+        if(killed && !piecesThatKilled.contains(pawn)) piecesThatKilled.add(pawn);
 
+
+    }
+
+    //adding the side piece to piecesThatMoved and piecesThatKilled if not there, and removing it from the board
+    private boolean isKilled(Pawn pawn, ConcretePiece side) {
+        if(piecesThatMoved.contains(side)){
+            piecesThatMoved.add(new Pawn((Pawn) side));
+        }
+        if(piecesThatKilled.contains(side)){
+            piecesThatMoved.add(new Pawn((Pawn) side));
+        }
+
+        this.board[side.getPos().getX()][side.getPos().getY()] = null;
+        ((Pawn) this.board[pawn.getPos().getX()][pawn.getPos().getY()]).getKill();
+
+        return true;
     }
 
     private void switchTurns(){
@@ -374,15 +459,15 @@ public class GameLogic implements PlayableLogic {
     private Piece[][] setNewBoard(){
 
         String [][] arr = { {"0","0","0","A1","A2","A3","A4","A5","0","0","0"},
-                            {"0","0","0","0","0","A6","0","0","0","0","0"},
-                            {"0","0","0","0","0","0","0","0","0","0","0"},
-                            {"A7","0","0","0","0","D1","0","0","0","0","A8"},
+                            {"0","0","0","0", "0", "A6","0", "0", "0","0","0"},
+                            {"0","0","0","0", "0", "0", "0", "0", "0","0","0"},
+                            {"A7","0","0","0","0","D1", "0", "0","0","0","A8"},
                             {"A9","0","0","0","D2","D3","D4","0","0","0","A10"},
                             {"A11","A12","0","D5","D6","K7","D8","D9","0","A13","A14"},
                             {"A15","0","0","0","D10","D11","D12","0","0","0","A16"},
                             {"A17","0","0","0","0","D13","0","0","0","0","A18"},
                             {"0","0","0","0","0","0","0","0","0","0","0"},
-                            {"0","0","0","0","0","A19","0","0","0","0","0"},
+                            {"0","0","0","0",   "0", "A19", "0",  "0", "0","0","0"},
                             {"0","0","0","A20","A21","A22","A23","A24","0","0","0"}};
 
         Piece [][] newBoard = new ConcretePiece[11][11];
@@ -396,6 +481,7 @@ public class GameLogic implements PlayableLogic {
                     this.kingPos = p;
                     newBoard[i][j] = new King();
                     ((King)newBoard[i][j]).setPos(p);
+                    ((King)newBoard[i][j]).setPosQueue(p);
                     ((King)newBoard[i][j]).setName(arr[i][j]);
                     ((King)newBoard[i][j]).setOwner(player1);
 
@@ -404,6 +490,7 @@ public class GameLogic implements PlayableLogic {
                     Position p = new Position(i,j);
                     newBoard[i][j] = new Pawn();
                     ((Pawn)newBoard[i][j]).setPos(p);
+                    ((Pawn)newBoard[i][j]).setPosQueue(p);
                     ((Pawn)newBoard[i][j]).setName(arr[i][j]);
                     if (arr[i][j].charAt(0)=='A'){
                         ((Pawn)newBoard[i][j]).setOwner(player2);
