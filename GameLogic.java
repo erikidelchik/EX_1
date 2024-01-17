@@ -12,7 +12,7 @@ public class GameLogic implements PlayableLogic {
     private boolean gameFinished = false;
     private LinkedList<ConcretePiece> piecesThatMoved;
     private LinkedList<Pawn> piecesThatKilled;
-    private HashMap<Position, LinkedList<String>> differentPiecesOnBlock;
+    private LinkedList<Position> differentPiecesOnBlock;
     private Position kingPos;
 
 
@@ -25,7 +25,7 @@ public class GameLogic implements PlayableLogic {
         this.board = setNewBoard();
         this.piecesThatMoved = new LinkedList<>();
         this.piecesThatKilled = new LinkedList<>();
-        this.differentPiecesOnBlock = new HashMap<>();
+        this.differentPiecesOnBlock = new LinkedList<>();
 
     }
 
@@ -64,7 +64,7 @@ public class GameLogic implements PlayableLogic {
                 printStats();
                 return true;
             }
-            addPieceToMapIfNeeded(b);
+            addPointToListIfNeeded(b,piece.getName());
             if (!this.piecesThatMoved.contains(piece))
                 this.piecesThatMoved.add(piece);
             switchTurns();
@@ -170,7 +170,7 @@ public class GameLogic implements PlayableLogic {
         while (!this.boardStack.isEmpty()) {
             this.boardStack.pop();
         }
-        this.differentPiecesOnBlock = new HashMap<>();
+        this.differentPiecesOnBlock = new LinkedList<>();
         this.piecesThatMoved = new LinkedList<>();
         this.piecesThatKilled = new LinkedList<>();
 
@@ -253,7 +253,10 @@ public class GameLogic implements PlayableLogic {
     }
 
     private void printStats() {
+        //1
         PieceMovesComparator moveCom = new PieceMovesComparator();
+        LinkedList<ConcretePiece> piecesThatMovedTemp = (LinkedList<ConcretePiece>) this.piecesThatMoved.clone();
+
         Collections.sort(piecesThatMoved,moveCom);
         while (!this.piecesThatMoved.isEmpty()) {
             ConcretePiece piece = piecesThatMoved.getFirst();
@@ -263,12 +266,36 @@ public class GameLogic implements PlayableLogic {
             System.out.println();
         }
         print75();
-        PieceKillsComparator com = new PieceKillsComparator();
-        Collections.sort(this.piecesThatKilled,com);
+
+        //2
+        PieceKillsComparator killCom = new PieceKillsComparator();
+        Collections.sort(this.piecesThatKilled,killCom);
         while (!this.piecesThatKilled.isEmpty()){
             System.out.println(piecesThatKilled.getFirst().getName()+": "+piecesThatKilled.getFirst().getKills()+" kills");
             piecesThatKilled.removeFirst();
         }
+        //3
+        print75();
+
+        PieceStepsComparator stepCom = new PieceStepsComparator();
+        Collections.sort(piecesThatMovedTemp,stepCom);
+        while (!piecesThatMovedTemp.isEmpty()){
+            System.out.println(piecesThatMovedTemp.getFirst().getName()+": "+piecesThatMovedTemp.getFirst().getSteps()+" squares");
+            piecesThatMovedTemp.removeFirst();
+        }
+        //4
+        print75();
+
+        PiecesOnBlockComparator diffBlocks = new PiecesOnBlockComparator();
+        Collections.sort(differentPiecesOnBlock,diffBlocks);
+        while (!differentPiecesOnBlock.isEmpty()){
+            System.out.println(differentPiecesOnBlock.getFirst()+""+differentPiecesOnBlock.getFirst().getList().size()+" pieces");
+            differentPiecesOnBlock.removeFirst();
+        }
+
+        print75();
+
+
 
     }
 
@@ -278,19 +305,18 @@ public class GameLogic implements PlayableLogic {
         System.out.println();
     }
 
-    private void addPieceToMapIfNeeded(Position b) {
-        if (!this.differentPiecesOnBlock.containsKey(b)) {
-            //first step on this block
-            LinkedList<String> list = new LinkedList<>();
-            list.add(((ConcretePiece) this.board[b.getX()][b.getY()]).getName());
-            this.differentPiecesOnBlock.put(b, list);
-        }
-        //more than one piece stepped on this block
-        else {
-            //if the piece not in the list, add it to the list
-            if (!differentPiecesOnBlock.get(b).contains(((ConcretePiece) this.board[b.getX()][b.getY()]).getName())) {
-                differentPiecesOnBlock.get(b).add(((ConcretePiece) this.board[b.getX()][b.getY()]).getName());
+    private void addPointToListIfNeeded(Position b,String name) {
+        if(differentPiecesOnBlock.contains(b)) {
+            if (!b.getList().contains(name)) {
+                b.addItemToList(name);
             }
+        }
+        //first step on this block
+        else{
+            b.addItemToList(name);
+            if(b.getList().size()>1)
+                differentPiecesOnBlock.add(b);
+
         }
     }
 
@@ -472,6 +498,40 @@ public class GameLogic implements PlayableLogic {
         }
     }
 
+    public int sortByWinningTeam(ConcretePiece p1, ConcretePiece p2){
+        if (!p1.getOwner().equals(p2.getOwner())) {
+            if(p1.getOwner().equals(player1)) {
+                if(currentWinner.equals(player2)) return 1;
+                else return -1;
+            }
+            else if(p1.getOwner().equals(player2)){
+                if(currentWinner.equals(player2)) return -1;
+                else return 1;
+            }
+        }
+        return 0;
+    }
+
+    public void flipBoard(String[][] arr){
+        for(int i=0;i<11;i++){
+            for(int j=0;j<11;j++){
+                if(!arr[i][j].contains("$") && !arr[j][i].contains("$")) {
+                    arr[i][j]+="$";
+                    arr[j][i]+="$";
+                    String temp = arr[i][j];
+                    arr[i][j] = arr[j][i];
+                    arr[j][i] = temp;
+                }
+            }
+        }
+        for(int i=0;i<11;i++){
+            for(int j=0;j<11;j++){
+                if(arr[i][j].contains("$"))
+                    arr[i][j]=arr[i][j].replace("$","");
+            }
+        }
+    }
+
     private Piece[][] setNewBoard() {
 
         String[][] arr = {{"0", "0", "0", "A1", "A2", "A3", "A4", "A5", "0", "0", "0"},
@@ -486,6 +546,8 @@ public class GameLogic implements PlayableLogic {
                 {"0", "0", "0", "0", "0", "A19", "0", "0", "0", "0", "0"},
                 {"0", "0", "0", "A20", "A21", "A22", "A23", "A24", "0", "0", "0"}};
 
+        flipBoard(arr);
+
         Piece[][] newBoard = new ConcretePiece[11][11];
         for (int i = 0; i < 11; i++) {
             for (int j = 0; j < 11; j++) {
@@ -493,6 +555,7 @@ public class GameLogic implements PlayableLogic {
                     arr[i][j] = null;
                 } else if (arr[i][j].charAt(0) == 'K') {
                     Position p = new Position(i, j);
+                    p.addItemToList(arr[i][j]);
                     this.kingPos = p;
                     newBoard[i][j] = new King();
                     ((King) newBoard[i][j]).setPos(p);
@@ -502,6 +565,7 @@ public class GameLogic implements PlayableLogic {
 
                 } else {
                     Position p = new Position(i, j);
+                    p.addItemToList(arr[i][j]);
                     newBoard[i][j] = new Pawn();
                     ((Pawn) newBoard[i][j]).setPos(p);
                     ((Pawn) newBoard[i][j]).setPosQueue(p);
@@ -525,15 +589,7 @@ public class GameLogic implements PlayableLogic {
         @Override
         public int compare(ConcretePiece p1, ConcretePiece p2) {
             if(!p1.getOwner().equals(p2.getOwner())){
-                if(p1.getOwner().equals(player1)){
-                    if(currentWinner.equals(player2)) return 1;
-                    else return -1;
-
-                }
-                else if(p1.getOwner().equals(player2)){
-                    if(currentWinner.equals(player2)) return -1;
-                    else return 1;
-                }
+                return sortByWinningTeam(p1,p2);
             }
             else{
                 //first sort by stack sizes
@@ -560,15 +616,44 @@ public class GameLogic implements PlayableLogic {
             //swap if p1 lost and p2 won
 
             else {
-                if (!p1.getOwner().equals(p2.getOwner())) {
-                    if(p1.getOwner().equals(player1)) {
-                        if(currentWinner.equals(player2)) return 1;
-                        else return -1;
-                    }
-                    else if(p1.getOwner().equals(player2)){
-                        if(currentWinner.equals(player2)) return -1;
-                        else return 1;
-                    }
+                return sortByWinningTeam(p1,p2);
+            }
+
+        }
+    }
+
+    class PieceStepsComparator implements Comparator<ConcretePiece>{
+
+        @Override
+        public int compare(ConcretePiece p1, ConcretePiece p2) {
+            if(p1.getSteps()>p2.getSteps()) return -1;
+            else if(p1.getSteps()<p2.getSteps()) return 1;
+
+            else{
+                //first sort by piece number
+                if(Integer.parseInt(p1.getName().substring(1))>Integer.parseInt(p2.getName().substring(1))) return 1;
+                else if(Integer.parseInt(p1.getName().substring(1))<Integer.parseInt(p2.getName().substring(1))) return -1;
+                //then sort by winning team
+                else
+                    return sortByWinningTeam(p1,p2);
+
+            }
+
+        }
+    }
+
+    class PiecesOnBlockComparator implements Comparator<Position>{
+
+        @Override
+        public int compare(Position p1, Position p2) {
+            if(p1.getList().size()>p2.getList().size()) return -1;
+            else if(p1.getList().size()<p2.getList().size()) return 1;
+            else{
+                if(p1.getX()>p2.getX()) return -1;
+                else if(p1.getX()<p2.getX()) return 1;
+                else{
+                    if(p1.getY()>p2.getY()) return -1;
+                    else if(p1.getY()<p2.getY()) return 1;
                 }
             }
             return 0;
