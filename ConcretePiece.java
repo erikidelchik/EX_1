@@ -63,6 +63,10 @@ public abstract class ConcretePiece implements Piece {
 
     }
 
+    public String toString(){
+        return this.name;
+    }
+
 
 
 }

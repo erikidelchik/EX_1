@@ -1,5 +1,6 @@
 package matala1;
 
+import java.awt.*;
 import java.util.*;
 
 public class GameLogic implements PlayableLogic {
@@ -22,10 +23,10 @@ public class GameLogic implements PlayableLogic {
         this.player1 = new ConcretePlayer(1, false);
         this.player2 = new ConcretePlayer(2, true);
         this.currentWinner = new ConcretePlayer();
-        this.board = setNewBoard();
         this.piecesThatMoved = new LinkedList<>();
         this.piecesThatKilled = new LinkedList<>();
         this.differentPiecesOnBlock = new LinkedList<>();
+        this.board = setNewBoard();
 
     }
 
@@ -37,9 +38,12 @@ public class GameLogic implements PlayableLogic {
             this.board[b.getX()][b.getY()] = this.board[a.getX()][a.getY()];
             this.board[a.getX()][a.getY()] = null;
             ConcretePiece piece = (ConcretePiece) this.board[b.getX()][b.getY()];
+            addPointToListIfNeeded(b,piece.getName());
 
             piece.setPos(b);
             piece.setPosQueue(new Position(b.getX(), b.getY()));
+
+//            System.out.println(Arrays.toString(this.differentPiecesOnBlock.toArray()));
 
             if (this.board[b.getX()][b.getY()] instanceof Pawn) {
                 checkIfAteNearWall((Pawn) this.board[b.getX()][b.getY()]);
@@ -64,7 +68,7 @@ public class GameLogic implements PlayableLogic {
                 printStats();
                 return true;
             }
-            addPointToListIfNeeded(b,piece.getName());
+
             if (!this.piecesThatMoved.contains(piece))
                 this.piecesThatMoved.add(piece);
             switchTurns();
@@ -289,7 +293,8 @@ public class GameLogic implements PlayableLogic {
         PiecesOnBlockComparator diffBlocks = new PiecesOnBlockComparator();
         Collections.sort(differentPiecesOnBlock,diffBlocks);
         while (!differentPiecesOnBlock.isEmpty()){
-            System.out.println(differentPiecesOnBlock.getFirst()+""+differentPiecesOnBlock.getFirst().getList().size()+" pieces");
+            if(differentPiecesOnBlock.getFirst().getList().size()>1)
+                System.out.println(differentPiecesOnBlock.getFirst()+""+differentPiecesOnBlock.getFirst().getList().size()+" pieces");
             differentPiecesOnBlock.removeFirst();
         }
 
@@ -306,18 +311,31 @@ public class GameLogic implements PlayableLogic {
     }
 
     private void addPointToListIfNeeded(Position b,String name) {
-        if(differentPiecesOnBlock.contains(b)) {
-            if (!b.getList().contains(name)) {
-                b.addItemToList(name);
+        boolean contains = false;
+        for(Position i:differentPiecesOnBlock){
+            if (i.getX()==b.getX() && i.getY()==b.getY()){
+                contains = true;
+                if(!i.getList().contains(name))
+                    i.addItemToList(name);
             }
         }
-        //first step on this block
-        else{
-            b.addItemToList(name);
-            if(b.getList().size()>1)
-                differentPiecesOnBlock.add(b);
-
+        if(!contains){
+            Position p = new Position(b.getX(),b.getY());
+            p.addItemToList(name);
+            differentPiecesOnBlock.add(p);
         }
+
+//        if(!b.getList().contains(name)){
+//            b.addItemToList(name);
+//            System.out.println(b+" added "+name);
+//            System.out.println(b+" list: "+ Arrays.toString(b.getList().toArray()));
+//            if(b.getList().size()>1 && !differentPiecesOnBlock.contains(b)) {
+//                System.out.println("differentPiecesOnBlock added " + b);
+//                differentPiecesOnBlock.add(b);
+//            }
+//        }
+
+
     }
 
     private boolean posAtCorner(Position position) {
@@ -556,6 +574,7 @@ public class GameLogic implements PlayableLogic {
                 } else if (arr[i][j].charAt(0) == 'K') {
                     Position p = new Position(i, j);
                     p.addItemToList(arr[i][j]);
+                    differentPiecesOnBlock.add(p);
                     this.kingPos = p;
                     newBoard[i][j] = new King();
                     ((King) newBoard[i][j]).setPos(p);
@@ -566,6 +585,7 @@ public class GameLogic implements PlayableLogic {
                 } else {
                     Position p = new Position(i, j);
                     p.addItemToList(arr[i][j]);
+                    differentPiecesOnBlock.add(p);
                     newBoard[i][j] = new Pawn();
                     ((Pawn) newBoard[i][j]).setPos(p);
                     ((Pawn) newBoard[i][j]).setPosQueue(p);
@@ -649,11 +669,11 @@ public class GameLogic implements PlayableLogic {
             if(p1.getList().size()>p2.getList().size()) return -1;
             else if(p1.getList().size()<p2.getList().size()) return 1;
             else{
-                if(p1.getX()>p2.getX()) return -1;
-                else if(p1.getX()<p2.getX()) return 1;
+                if(p1.getX()>p2.getX()) return 1;
+                else if(p1.getX()<p2.getX()) return -1;
                 else{
-                    if(p1.getY()>p2.getY()) return -1;
-                    else if(p1.getY()<p2.getY()) return 1;
+                    if(p1.getY()>p2.getY()) return 1;
+                    else if(p1.getY()<p2.getY()) return -1;
                 }
             }
             return 0;
