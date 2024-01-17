@@ -12,5 +12,6 @@ public class King extends ConcretePiece {
     public String getType() {
         return "♔";
     }
+
 }
 

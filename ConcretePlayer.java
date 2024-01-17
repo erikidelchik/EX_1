@@ -4,6 +4,7 @@ public class ConcretePlayer implements Player {
     private int wins = 0;
     private boolean playerTurn;
     private int playerNum;
+    public ConcretePlayer(){}
 
     public ConcretePlayer(int num,boolean playerTurn){
         this.playerNum = num;
