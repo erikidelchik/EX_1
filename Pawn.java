@@ -15,7 +15,7 @@ public class Pawn extends ConcretePiece {
     public Player getOwner() {
         return returnOwner();
 
-    }a
+    }
 
     @Override
     public String getType() {
