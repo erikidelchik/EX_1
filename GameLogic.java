@@ -558,6 +558,7 @@ public class GameLogic implements PlayableLogic {
                 return -1;
             }
             //swap if p1 lost and p2 won
+
             else {
                 if (!p1.getOwner().equals(p2.getOwner())) {
                     if(p1.getOwner().equals(player1)) {
