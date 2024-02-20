@@ -1,4 +1,4 @@
-package matala1;
+
 
 public class Pawn extends ConcretePiece {
     private int kills = 0;

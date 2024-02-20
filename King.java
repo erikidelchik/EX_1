@@ -1,5 +1,3 @@
-package matala1;
-
 public class King extends ConcretePiece {
 
 

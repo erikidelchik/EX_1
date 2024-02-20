@@ -1,5 +1,3 @@
-package matala1;
-
 /**
  * The PlayableLogic interface defines the contract for the game logic
  * of chess-like games that can be played through a graphical user interface.
